@@ -1,0 +1,55 @@
+[project]
+name = "pantrio"
+version = "0.1.0"
+description = "Meal-planning app MVP: weekly plans, shopping lists, macros and pantry leftovers"
+readme = "README.md"
+authors = [
+    { name = "Artem Shitov", email = "artemshitov1985@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115",
+    # Database: async SQLAlchemy 2.0 + asyncpg driver + Alembic migrations
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    # Settings loaded from environment / .env
+    "pydantic-settings>=2.6",
+    # Auth: JWT, Argon2 password hashing, OAuth/OIDC clients
+    "pyjwt>=2.10",
+    "pwdlib[argon2]>=0.2.1",
+    "authlib>=1.4",
+    # Signs the session cookie Authlib uses to keep OAuth `state`
+    "itsdangerous>=2.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.8",
+]
+
+# This is an application you run, not a library you publish, so uv should
+# only install the dependencies and never try to build/install `pantrio` itself.
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "pantrio",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
