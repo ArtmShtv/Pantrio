@@ -14,6 +14,11 @@ PackSize = Annotated[Decimal, Field(gt=0, max_digits=10, decimal_places=2)]
 Price = Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=2)]
 
 
+class IngredientRef(BaseModel):
+    id: int
+    name: str
+
+
 class ProductCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
