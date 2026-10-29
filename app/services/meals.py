@@ -132,8 +132,6 @@ async def get_visible(session: AsyncSession, user: User, meal_id: int) -> Meal:
     return meal
 
 
-
-
 def _ensure_can_edit(user: User, meal: Meal) -> None:
     if meal.created_by_id is None and not user.is_admin:
         raise PermissionDeniedError("Only admins can change global meals")

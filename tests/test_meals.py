@@ -67,8 +67,6 @@ async def create_meal(client, headers, body, *, scope="private") -> dict:
     return r.json()
 
 
-
-
 async def test_detail_computes_grams_and_nutrition(client, pantry):
     headers, ids = pantry
     meal = await create_meal(client, headers, meal_body(ids))
@@ -112,8 +110,6 @@ async def test_list_shows_kcal_per_serving(client, pantry):
         (f"{tag} b", 406.2),
     ]
     assert page["items"][0] == page["items"][0] | {"servings": 1, "is_global": False}
-
-
 
 
 @pytest.mark.parametrize(
@@ -169,8 +165,6 @@ async def test_duplicate_name_is_409(client, pantry):
     assert r.status_code == 409
 
 
-
-
 async def test_global_meals(client, make_user):
     admin, alice = await make_user(admin=True), await make_user()
     glob = await ingredient(client, admin, scope="global")
@@ -194,8 +188,6 @@ async def test_global_meals(client, make_user):
     assert (await client.delete(f"/meals/{meal['id']}", headers=alice)).status_code == 403
 
 
-
-
 async def test_private_meal_is_invisible_to_others(client, pantry, make_user):
     headers, ids = pantry
     bob = await make_user()
@@ -207,8 +199,6 @@ async def test_private_meal_is_invisible_to_others(client, pantry, make_user):
     assert (await client.delete(f"/meals/{meal['id']}", headers=bob)).status_code == 404
     r = await client.get("/meals", params={"q": meal["name"]}, headers=bob)
     assert r.json()["total"] == 0
-
-
 
 
 async def test_put_replaces_everything_and_removes_dropped_items(
@@ -243,8 +233,6 @@ async def test_put_rename_to_taken_name_is_409(client, pantry):
     # Keeping its own name is fine.
     r = await client.put(f"/meals/{b['id']}", json=meal_body(ids, name=b["name"]), headers=headers)
     assert r.status_code == 200
-
-
 
 
 async def test_delete(client, pantry):

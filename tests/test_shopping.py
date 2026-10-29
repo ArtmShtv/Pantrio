@@ -19,8 +19,6 @@ def pack(id=1, size="900", price="119.90", own=True) -> Pack:
     return Pack(id, f"pack {id}", "Magnit", D(size), D(price), own)
 
 
-
-
 @pytest.mark.parametrize(
     ("to_buy", "size", "expected"),
     [("900", "900", 1), ("900.01", "900", 2), ("1", "900", 1), ("1800", "900", 2)],
@@ -37,8 +35,6 @@ def test_line_cost_and_surplus():
         D("239.80"),
         D("800"),
     )
-
-
 
 
 def test_pantry_reduces_what_to_buy():
@@ -59,8 +55,6 @@ def test_pantry_covering_everything_drops_the_line():
 def test_use_pantry_false_ignores_it():
     line = build_line(1, D("900"), D("900"), [pack()], use_pantry=False)
     assert line.to_buy_g == D("900") and line.in_pantry_g == D("900")
-
-
 
 
 def test_no_product_gives_line_without_cost():
@@ -87,8 +81,6 @@ def test_own_products_beat_global_even_if_dearer():
     glob = pack(2, price="100", own=False)
     assert choose_pack(D("100"), [own, glob]) == own
     assert choose_pack(D("100"), [glob]) == glob
-
-
 
 
 def _ingredient(id, **kw) -> Ingredient:
@@ -126,8 +118,6 @@ def test_needs_rounding_avoids_an_extra_pack():
     need = needs_from_slots(slots)[1]
     assert need == D("250.00")
     assert packs_needed(need, D("250")) == 1
-
-
 
 
 async def _post(client, url, headers, body, params=None) -> dict:

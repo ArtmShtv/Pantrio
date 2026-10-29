@@ -59,4 +59,3 @@ class SocialAccount(Base):
         # One account per provider per user: no linking two Google accounts.
         UniqueConstraint("user_id", "provider"),
     )
-

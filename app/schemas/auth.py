@@ -19,6 +19,7 @@ def _check_username_chars(v: str) -> str:
         raise ValueError("may contain only letters a-z, digits, '_', '.' and '-'")
     return v
 
+
 Username = Annotated[
     str,
     StringConstraints(
@@ -40,11 +41,7 @@ class UserCreateSchema(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {
-                    "email": "artem@example.com",
-                    "username": "artem",
-                    "password": "s3cret-pass"
-                }
+                {"email": "artem@example.com", "username": "artem", "password": "s3cret-pass"}
             ]
         }
     )

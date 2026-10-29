@@ -35,8 +35,6 @@ async def make_product(
     return r.json()
 
 
-
-
 @pytest.mark.parametrize(
     ("pack_size", "pack_unit", "grams"),
     [(930, "ml", 957.9), (10, "piece", 550.0), (500, "g", 500.0)],
@@ -112,8 +110,6 @@ async def test_patch_price_and_name(client, make_user):
     )
     assert r.json()["price"] == 99.5 and r.json()["name"] == "Milk 2.5%"
     assert r.json()["pack_size_g"] == 957.9
-
-
 
 
 async def test_users_product_is_invisible_to_others(client, make_user, admin_and_global):
@@ -193,8 +189,6 @@ async def test_delete_own_product(client, make_user):
     assert (await client.delete(f"/products/{p['id']}", headers=alice)).status_code == 204
     r = await client.get(f"/ingredients/{ing['id']}/products", headers=alice)
     assert r.json() == []
-
-
 
 
 async def test_sorted_by_price_per_gram(client, make_user):

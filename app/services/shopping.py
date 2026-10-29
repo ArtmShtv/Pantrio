@@ -43,8 +43,6 @@ class Line:
     surplus_g: Decimal | None
 
 
-
-
 def needs_from_slots(slots: Iterable[PlanSlot]) -> dict[int, Decimal]:
     """Grams needed per ingredient id, over the uncooked slots.
 
@@ -114,8 +112,6 @@ def build_line(
         n * pack.price,
         n * pack.pack_size_g - to_buy,
     )
-
-
 
 
 @dataclass(frozen=True)

@@ -43,7 +43,6 @@ def test_price_per_kg_rounds_to_kopecks():
     assert price_per_kg(D("0"), D("500")) == D("0.00")
 
 
-
 RICE = {"calories": D("344"), "protein": D("6.7"), "fat": D("0.7"), "carbs": D("78.9")}
 MILK = {"calories": D("60"), "protein": D("3"), "fat": D("3.2"), "carbs": D("4.7")}
 

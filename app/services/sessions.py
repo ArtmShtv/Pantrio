@@ -84,9 +84,7 @@ async def rotate_refresh_token(db: AsyncSession, raw: str) -> tuple[User, str]:
 async def revoke_session(db: AsyncSession, raw: str) -> None:
     """Logout: revoke the session the token belongs to. Silent if unknown."""
     family_id = await db.scalar(
-        select(RefreshToken.family_id).where(
-            RefreshToken.token_hash == hash_refresh_token(raw)
-        )
+        select(RefreshToken.family_id).where(RefreshToken.token_hash == hash_refresh_token(raw))
     )
     if family_id is not None:
         await _revoke_family(db, family_id)

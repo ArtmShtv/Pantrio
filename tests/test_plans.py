@@ -57,8 +57,6 @@ async def setup(client, make_user):
     return headers, meal, plan
 
 
-
-
 async def test_new_plan_has_seven_empty_days(client, make_user):
     headers = await make_user()
     plan = await make_plan(client, headers)
@@ -122,8 +120,6 @@ async def test_delete_plan_removes_slots(client, setup):
     assert (await client.delete(f"/meals/{meal['id']}", headers=headers)).status_code == 204
 
 
-
-
 async def test_slot_scales_meal_by_servings(client, setup):
     headers, meal, plan = setup  # meal: 2 servings, 812.3 kcal total
     one = await add_slot(
@@ -178,8 +174,6 @@ async def test_slots_sorted_by_meal_type_then_id(client, setup):
     )
 
 
-
-
 @pytest.mark.parametrize(
     "change",
     [{"day": 7}, {"day": -1}, {"meal_type": "brunch"}, {"servings": 0}, {"servings": 1.234}],
@@ -201,8 +195,6 @@ async def test_slot_with_someone_elses_meal_is_422(client, setup, make_user):
         headers=headers,
     )
     assert r.status_code == 422 and "Unknown meal" in r.json()["detail"]
-
-
 
 
 async def test_patch_slot(client, setup):

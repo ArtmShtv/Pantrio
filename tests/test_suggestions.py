@@ -71,8 +71,6 @@ def test_zero_scores_are_dropped_and_limit_applies():
     assert len(rank(cands, Strategy.GRAMS, 2)) == 2
 
 
-
-
 async def _ing(client, headers, name, **extra) -> int:
     body = {"name": name, "calories": 100, "protein": 1, "fat": 1, "carbs": 1} | extra
     r = await client.post("/ingredients", json=body, headers=headers)

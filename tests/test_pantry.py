@@ -32,8 +32,6 @@ async def pantry(client, headers) -> dict[int, float]:
     return {row["ingredient"]["id"]: row["quantity_g"] for row in r.json()}
 
 
-
-
 async def test_put_sets_not_adds(client, make_user):
     headers = await make_user()
     rice = await ingredient(client, headers)
@@ -97,8 +95,6 @@ async def test_pantry_is_private_and_sorted(client, make_user):
     assert await pantry(client, bob) == {}
 
 
-
-
 async def test_purchase_adds_and_merges_duplicate_lines(client, make_user):
     headers = await make_user()
     rice = await ingredient(client, headers)
@@ -135,8 +131,6 @@ async def test_purchase_validation(client, make_user):
     assert (
         await client.post("/pantry/purchases", json={"items": []}, headers=alice)
     ).status_code == 422
-
-
 
 
 @pytest.fixture
@@ -226,8 +220,6 @@ async def test_cook_someone_elses_slot_is_404(client, cooking, make_user):
     _, url, *_ = cooking
     bob = await make_user()
     assert (await client.post(f"{url}/cook", headers=bob)).status_code == 404
-
-
 
 
 @pytest.fixture

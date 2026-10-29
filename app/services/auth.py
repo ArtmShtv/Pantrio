@@ -44,7 +44,7 @@ async def register_user(session: AsyncSession, user_data: UserCreateSchema) -> U
 
 
 async def authenticate_user(session: AsyncSession, email: str, password: str) -> User | None:
-    user = await get_user_by_email(session, email) 
+    user = await get_user_by_email(session, email)
 
     has_password = user is not None and user.password_hash is not None
     hashed = user.password_hash if has_password else _DUMMY_HASH

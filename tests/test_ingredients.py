@@ -40,8 +40,6 @@ async def me(client: AsyncClient, headers) -> int:
     return (await client.get("/users/me", headers=headers)).json()["id"]
 
 
-
-
 async def test_create_returns_numbers_not_strings(client, make_user):
     alice = await make_user()
     ing = await create(client, alice, grams_per_piece=55)
@@ -110,8 +108,6 @@ async def test_detail_lists_visible_products_cheapest_per_gram_first(client, mak
     assert products[0]["price_per_kg"] == 133.22
 
 
-
-
 async def test_private_ingredient_is_invisible_to_others(client, make_user):
     alice, bob = await make_user(), await make_user()
     ing = await create(client, alice)
@@ -151,8 +147,6 @@ async def test_global_is_visible_to_all_but_editable_by_admin_only(client, make_
 
 async def test_requires_auth(client):
     assert (await client.get("/ingredients")).status_code == 401
-
-
 
 
 @pytest.mark.parametrize(
@@ -198,8 +192,6 @@ async def test_patch_partial_update(client, make_user):
     assert r.status_code == 200
     assert r.json()["name"] == "Basmati" and r.json()["grams_per_ml"] == 0.85
     assert r.json()["calories"] == 344.0
-
-
 
 
 async def test_duplicate_name_is_409_case_insensitive(client, make_user):
