@@ -16,38 +16,50 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "Pantrio"
-    environment: Literal["local", "test", "production"] = "local"
+    SECRET_KEY: str
 
-    postgres_user: str
-    postgres_password: SecretStr
-    postgres_db: str
-    postgres_host: str = "localhost"
-    postgres_port: int = 5432
-    db_echo: bool = False
+    ENVIRONMENT: Literal["local", "test", "production"] = "local"
 
-    jwt_secret: SecretStr = Field(min_length=32)
-    jwt_algorithm: str = "HS256"
-    access_token_ttl_minutes: int = 15
-    refresh_token_ttl_days: int = 30
-    session_secret: SecretStr = Field(min_length=32)
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: SecretStr
+    POSTGRES_DB: str
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    DB_ECHO: bool = False
 
-    google_client_id: str | None = None
-    google_client_secret: SecretStr | None = None
-    yandex_client_id: str | None = None
-    yandex_client_secret: SecretStr | None = None
-    vk_client_id: str | None = None
-    vk_client_secret: SecretStr | None = None
+    JWT_SECRET: SecretStr = Field(min_length=32)
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_TTL_MINUTES: int = 15
+    REFRESH_TOKEN_TTL_DAYS: int = 30
+    SESSION_SECRET: SecretStr = Field(min_length=32)
+
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: SecretStr | None = None
+    YANDEX_CLIENT_ID: str | None = None
+    YANDEX_CLIENT_SECRET: SecretStr | None = None
+    VK_CLIENT_ID: str | None = None
+    VK_CLIENT_SECRET: SecretStr | None = None
 
     @property
-    def database_url(self) -> URL:
+    def DATABASE_ASYNC_URL(self) -> URL:
         return URL.create(
             drivername="postgresql+asyncpg",
-            username=self.postgres_user,
-            password=self.postgres_password.get_secret_value(),
-            host=self.postgres_host,
-            port=self.postgres_port,
-            database=self.postgres_db,
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD.get_secret_value(),
+            host=self.POSTGRES_HOST,
+            port=self.POSTGRES_PORT,
+            database=self.POSTGRES_DB,
+        )
+
+    @property
+    def DATABASE_SYNC_URL(self) -> URL:
+        return URL.create(
+            drivername="postgresql+psycopg2",
+            username=self.POSTGRES_USER,
+            password=self.POSTGRES_PASSWORD.get_secret_value(),
+            host=self.POSTGRES_HOST,
+            port=self.POSTGRES_PORT,
+            database=self.POSTGRES_DB,
         )
 
 

@@ -22,9 +22,9 @@ def create_token(user_id: int, token_type: TokenType) -> str:
     settings = get_settings()
     now = datetime.now(UTC)
     ttl = (
-        timedelta(minutes=settings.access_token_ttl_minutes)
+        timedelta(minutes=settings.ACCESS_TOKEN_TTL_MINUTES)
         if token_type == "access"
-        else timedelta(days=settings.refresh_token_ttl_days)
+        else timedelta(days=settings.REFRESH_TOKEN_TTL_DAYS)
     )
     payload = {
         "sub": str(user_id),
@@ -34,8 +34,8 @@ def create_token(user_id: int, token_type: TokenType) -> str:
     }
     return jwt.encode(
         payload,
-        settings.jwt_secret.get_secret_value(),
-        algorithm=settings.jwt_algorithm,
+        settings.JWT_SECRET.get_secret_value(),
+        algorithm=settings.JWT_ALGORITHM,
     )
 
 
@@ -43,8 +43,8 @@ def decode_token(token: str, expected_type: TokenType) -> dict:
     settings = get_settings()
     payload = jwt.decode(
         token,
-        settings.jwt_secret.get_secret_value(),
-        algorithms=[settings.jwt_algorithm],
+        settings.JWT_SECRET.get_secret_value(),
+        algorithms=[settings.JWT_ALGORITHM],
         options={"require": ["exp", "sub", "type"]},
     )
     if payload["type"] != expected_type:

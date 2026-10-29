@@ -35,11 +35,6 @@ dev = [
 [tool.uv]
 package = false
 
-[tool.uv.workspace]
-members = [
-    "pantrio",
-]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
