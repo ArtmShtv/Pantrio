@@ -67,7 +67,6 @@ async def create_meal(client, headers, body, *, scope="private") -> dict:
     return r.json()
 
 
-# --- nutrition in responses ----------------------------------------------------
 
 
 async def test_detail_computes_grams_and_nutrition(client, pantry):
@@ -115,7 +114,6 @@ async def test_list_shows_kcal_per_serving(client, pantry):
     assert page["items"][0] == page["items"][0] | {"servings": 1, "is_global": False}
 
 
-# --- validation ----------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -171,7 +169,6 @@ async def test_duplicate_name_is_409(client, pantry):
     assert r.status_code == 409
 
 
-# --- global meals --------------------------------------------------------------
 
 
 async def test_global_meals(client, make_user):
@@ -197,7 +194,6 @@ async def test_global_meals(client, make_user):
     assert (await client.delete(f"/meals/{meal['id']}", headers=alice)).status_code == 403
 
 
-# --- visibility ------------------------------------------------------------------
 
 
 async def test_private_meal_is_invisible_to_others(client, pantry, make_user):
@@ -213,7 +209,6 @@ async def test_private_meal_is_invisible_to_others(client, pantry, make_user):
     assert r.json()["total"] == 0
 
 
-# --- PUT ---------------------------------------------------------------------------
 
 
 async def test_put_replaces_everything_and_removes_dropped_items(
@@ -250,7 +245,6 @@ async def test_put_rename_to_taken_name_is_409(client, pantry):
     assert r.status_code == 200
 
 
-# --- DELETE --------------------------------------------------------------------------
 
 
 async def test_delete(client, pantry):

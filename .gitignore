@@ -1,4 +1,3 @@
-# Python-generated files
 __pycache__/
 *.py[oc]
 build/
@@ -6,15 +5,30 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
 .venv
+venv/
 
-# Secrets: real values live only in .env (see .env.example)
 .env
+.env.*
+!.env.example
+*.pem
+*.key
 
 # Tool caches
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+*.log
+docker-compose.override.yml
+
+.idea/
+.vscode/
+*.swp
+.DS_Store
 
 CLAUDE.md
 /docs

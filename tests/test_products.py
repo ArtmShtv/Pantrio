@@ -35,7 +35,6 @@ async def make_product(
     return r.json()
 
 
-# --- unit conversion ---------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -115,7 +114,6 @@ async def test_patch_price_and_name(client, make_user):
     assert r.json()["pack_size_g"] == 957.9
 
 
-# --- visibility and permissions ----------------------------------------------
 
 
 async def test_users_product_is_invisible_to_others(client, make_user, admin_and_global):
@@ -197,7 +195,6 @@ async def test_delete_own_product(client, make_user):
     assert r.json() == []
 
 
-# --- sorting -----------------------------------------------------------------
 
 
 async def test_sorted_by_price_per_gram(client, make_user):

@@ -43,7 +43,6 @@ class Line:
     surplus_g: Decimal | None
 
 
-# --- pure maths --------------------------------------------------------------
 
 
 def needs_from_slots(slots: Iterable[PlanSlot]) -> dict[int, Decimal]:
@@ -117,7 +116,6 @@ def build_line(
     )
 
 
-# --- loader ------------------------------------------------------------------
 
 
 @dataclass(frozen=True)

@@ -36,7 +36,7 @@ Code style: comments
 - Do not add comments to code. This includes inline comments, block
   comments, and docstrings, unless I explicitly ask for them.
 - Put explanations of reasoning and design choices in the chat
-  response, never in the code.
+  response, never in the code.efv
 - Do not leave TODO/FIXME notes, commented-out code, or "changed X"
   remarks in files.
 - When editing existing files, keep comments that are already there

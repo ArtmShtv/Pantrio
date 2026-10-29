@@ -57,7 +57,6 @@ async def setup(client, make_user):
     return headers, meal, plan
 
 
-# --- plans ---------------------------------------------------------------------
 
 
 async def test_new_plan_has_seven_empty_days(client, make_user):
@@ -123,7 +122,6 @@ async def test_delete_plan_removes_slots(client, setup):
     assert (await client.delete(f"/meals/{meal['id']}", headers=headers)).status_code == 204
 
 
-# --- nutrition -------------------------------------------------------------------
 
 
 async def test_slot_scales_meal_by_servings(client, setup):
@@ -180,7 +178,6 @@ async def test_slots_sorted_by_meal_type_then_id(client, setup):
     )
 
 
-# --- slot validation ----------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -206,7 +203,6 @@ async def test_slot_with_someone_elses_meal_is_422(client, setup, make_user):
     assert r.status_code == 422 and "Unknown meal" in r.json()["detail"]
 
 
-# --- PATCH / DELETE slots ------------------------------------------------------------
 
 
 async def test_patch_slot(client, setup):

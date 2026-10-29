@@ -71,7 +71,6 @@ def test_zero_scores_are_dropped_and_limit_applies():
     assert len(rank(cands, Strategy.GRAMS, 2)) == 2
 
 
-# --- API -------------------------------------------------------------------------------
 
 
 async def _ing(client, headers, name, **extra) -> int:

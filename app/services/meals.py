@@ -56,9 +56,6 @@ def _scope_filter(user: User, scope: Scope) -> ColumnElement[bool]:
             return visible_to(user)
 
 
-# --- maths -------------------------------------------------------------------
-
-
 def item_nutrition(item: RecipeItem) -> Nutrition:
     ing = item.ingredient
     grams = to_grams(
@@ -108,7 +105,6 @@ def to_detail(meal: Meal) -> MealDetail:
     )
 
 
-# --- reads -------------------------------------------------------------------
 
 
 async def list_meals(
@@ -138,7 +134,6 @@ async def get_visible(session: AsyncSession, user: User, meal_id: int) -> Meal:
     return meal
 
 
-# --- writes ------------------------------------------------------------------
 
 
 def _ensure_can_edit(user: User, meal: Meal) -> None:
