@@ -2,16 +2,18 @@ from collections.abc import Sequence
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import ColumnElement, or_, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import contains_eager, joinedload
 
 from app.core.exceptions import DomainValidationError, NotFoundError, PermissionDeniedError
 from app.db.models.catalog import Ingredient, ShopProduct
 from app.db.models.enums import Unit
 from app.db.models.user import User
+from app.schemas.ingredients import Scope
 from app.schemas.products import ProductCreate
 from app.services import ingredients
-from app.services.calc import GRAMS, UnitNotSupportedError, to_grams
+from app.services.calc import GRAMS, UnitNotSupportedError, round_to, to_grams
 
 
 def visible_to(user: User) -> ColumnElement[bool]:
@@ -31,10 +33,60 @@ async def list_for_ingredient(
     return rows.all()
 
 
-async def get_visible(session: AsyncSession, user: User, product_id: int) -> ShopProduct:
-    product = await session.scalar(
-        select(ShopProduct).where(ShopProduct.id == product_id, visible_to(user))
+def _scope_filter(user: User, scope: Scope) -> ColumnElement[bool]:
+    match scope:
+        case Scope.MINE:
+            return ShopProduct.created_by_id == user.id
+        case Scope.GLOBAL:
+            return ShopProduct.created_by_id.is_(None)
+        case _:
+            return visible_to(user)
+
+
+async def list_products(
+    session: AsyncSession,
+    user: User,
+    *,
+    q: str | None,
+    ingredient_id: int | None,
+    shop_name: str | None,
+    scope: Scope,
+    limit: int,
+    offset: int,
+) -> tuple[Sequence[ShopProduct], int]:
+    """Grouped by ingredient name, cheapest per gram first within each one."""
+    conditions = [_scope_filter(user, scope)]
+    if q:
+        conditions.append(ShopProduct.name.icontains(q, autoescape=True))
+    if ingredient_id is not None:
+        conditions.append(ShopProduct.ingredient_id == ingredient_id)
+    if shop_name:
+        conditions.append(func.lower(ShopProduct.shop_name) == shop_name.strip().lower())
+
+    total = await session.scalar(select(func.count()).select_from(ShopProduct).where(*conditions))
+    rows = await session.scalars(
+        select(ShopProduct)
+        .join(ShopProduct.ingredient)
+        .options(contains_eager(ShopProduct.ingredient))
+        .where(*conditions)
+        .order_by(
+            func.lower(Ingredient.name),
+            ShopProduct.price / ShopProduct.pack_size_g,
+            ShopProduct.id,
+        )
+        .limit(limit)
+        .offset(offset)
     )
+    return rows.all(), total or 0
+
+
+async def get_visible(
+    session: AsyncSession, user: User, product_id: int, *, with_ingredient: bool = False
+) -> ShopProduct:
+    stmt = select(ShopProduct).where(ShopProduct.id == product_id, visible_to(user))
+    if with_ingredient:
+        stmt = stmt.options(joinedload(ShopProduct.ingredient))
+    product = await session.scalar(stmt)
     if product is None:
         raise NotFoundError("Product not found")
     return product
@@ -52,7 +104,7 @@ def _pack_grams(ing: Ingredient, size: Decimal, unit: Unit) -> Decimal:
         )
     except UnitNotSupportedError as e:
         raise DomainValidationError(f"{ing.name!r}: {e}") from None
-    grams = grams.quantize(GRAMS)
+    grams = round_to(grams, GRAMS)
     if grams <= 0:
         # e.g. 0.001 ml rounds to 0.00 g; the DB CHECK would reject it anyway.
         raise DomainValidationError("pack is too small")
