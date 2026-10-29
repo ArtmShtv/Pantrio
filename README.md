@@ -1,7 +1,7 @@
 # Pantrio
 
 Meal-planning app MVP: weekly meal plans, pack-aware shopping lists with prices,
-calories and macros, and a pantry of leftover ingredients.
+calories and macros, and a pantry of leftover ingredients
 
 ## Stack
 
