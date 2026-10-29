@@ -11,7 +11,7 @@ from app.core.exceptions import (
     NotFoundError,
     PermissionDeniedError,
 )
-from app.db.models.catalog import Ingredient, ShopProduct
+from app.db.models.catalog import Ingredient
 from app.db.models.enums import Unit
 from app.db.models.meal import Meal, RecipeItem
 from app.db.models.user import User
@@ -58,20 +58,6 @@ async def get_visible(session: AsyncSession, user: User, ingredient_id: int) -> 
     if ing is None:
         raise NotFoundError("Ingredient not found")
     return ing
-
-
-async def visible_products(
-    session: AsyncSession, user: User, ingredient_id: int
-) -> Sequence[ShopProduct]:
-    rows = await session.scalars(
-        select(ShopProduct)
-        .where(
-            ShopProduct.ingredient_id == ingredient_id,
-            or_(ShopProduct.created_by_id.is_(None), ShopProduct.created_by_id == user.id),
-        )
-        .order_by(ShopProduct.price / ShopProduct.pack_size_g, ShopProduct.id)
-    )
-    return rows.all()
 
 
 def _ensure_can_edit(user: User, ing: Ingredient) -> None:

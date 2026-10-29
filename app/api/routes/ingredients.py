@@ -10,10 +10,11 @@ from app.schemas.ingredients import (
     IngredientDetail,
     IngredientRead,
     IngredientUpdate,
-    ProductRead,
     Scope,
 )
+from app.schemas.products import ProductRead
 from app.services import ingredients as service
+from app.services import products as products_service
 
 router = APIRouter(prefix="/ingredients", tags=["ingredients"])
 
@@ -39,11 +40,22 @@ async def list_ingredients(
 @router.get("/{ingredient_id}", response_model=IngredientDetail, responses=_404)
 async def get_ingredient(ingredient_id: int, user: CurrentUser, db: DB):
     ing = await service.get_visible(db, user, ingredient_id)
-    products = await service.visible_products(db, user, ingredient_id)
+    products = await products_service.list_for_ingredient(db, user, ingredient_id)
     return IngredientDetail(
         **IngredientRead.from_model(ing).model_dump(),
         products=[ProductRead.from_model(p) for p in products],
     )
+
+
+@router.get(
+    "/{ingredient_id}/products",
+    response_model=list[ProductRead],
+    summary="Products for this ingredient, cheapest per gram first",
+    responses=_404,
+)
+async def list_products(ingredient_id: int, user: CurrentUser, db: DB):
+    products = await products_service.list_for_ingredient(db, user, ingredient_id)
+    return [ProductRead.from_model(p) for p in products]
 
 
 @router.post(

@@ -11,8 +11,9 @@ from pydantic import (
     model_validator,
 )
 
-from app.db.models.catalog import Ingredient, ShopProduct
+from app.db.models.catalog import Ingredient
 from app.schemas.common import Num
+from app.schemas.products import ProductRead
 
 
 class Scope(StrEnum):
@@ -102,28 +103,6 @@ class IngredientRead(BaseModel):
             carbs=ing.carbs,
             grams_per_piece=ing.grams_per_piece,
             grams_per_ml=ing.grams_per_ml,
-        )
-
-
-class ProductRead(BaseModel):
-    id: int
-    name: str
-    shop_name: str
-    pack_size_g: Num
-    price: Num
-    price_per_kg: Num
-    is_global: bool
-
-    @classmethod
-    def from_model(cls, p: ShopProduct) -> Self:
-        return cls(
-            id=p.id,
-            name=p.name,
-            shop_name=p.shop_name,
-            pack_size_g=p.pack_size_g,
-            price=p.price,
-            price_per_kg=(p.price / p.pack_size_g * 1000).quantize(Decimal("0.01")),
-            is_global=p.created_by_id is None,
         )
 
 
