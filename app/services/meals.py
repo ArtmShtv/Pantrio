@@ -39,7 +39,7 @@ from app.services.calc import (
 )
 
 # Every read needs items and their ingredients; the relationships are lazy="raise".
-_WITH_ITEMS = selectinload(Meal.items).selectinload(RecipeItem.ingredient)
+WITH_ITEMS = selectinload(Meal.items).selectinload(RecipeItem.ingredient)
 
 
 def visible_to(user: User) -> ColumnElement[bool]:
@@ -120,7 +120,7 @@ async def list_meals(
     total_count = await session.scalar(select(func.count()).select_from(Meal).where(*conditions))
     rows = await session.scalars(
         select(Meal)
-        .options(_WITH_ITEMS)
+        .options(WITH_ITEMS)
         .where(*conditions)
         .order_by(func.lower(Meal.name), Meal.id)
         .limit(limit)
@@ -131,7 +131,7 @@ async def list_meals(
 
 async def get_visible(session: AsyncSession, user: User, meal_id: int) -> Meal:
     meal = await session.scalar(
-        select(Meal).options(_WITH_ITEMS).where(Meal.id == meal_id, visible_to(user))
+        select(Meal).options(WITH_ITEMS).where(Meal.id == meal_id, visible_to(user))
     )
     if meal is None:
         raise NotFoundError("Meal not found")
