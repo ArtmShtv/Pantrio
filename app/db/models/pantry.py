@@ -12,9 +12,9 @@ from app.db.models.catalog import Grams, Ingredient
 class Leftover(Base):
     """How much of an ingredient the user has, in grams.
 
-    Grows when a shopping list is marked as bought (pack surplus), shrinks
-    when a plan slot is marked as cooked. When the quantity reaches 0,
-    delete the row instead of keeping a zero. The CHECK enforces this.
+    Grows by the full bought amount on a purchase, shrinks by the recipe
+    amount when a plan slot is cooked. When the quantity reaches 0, delete
+    the row instead of keeping a zero. The CHECK enforces this.
     """
 
     id: Mapped[int_pk]
