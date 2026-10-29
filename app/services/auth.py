@@ -1,34 +1,47 @@
 import asyncio
 
-from sqlalchemy import select
+from fastapi import HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.security import hash_password, verify_password
 from app.core.exceptions import UserAlreadyExistsError
 from app.db.models.user import User
-from app.schemas.auth import UserCreateSchema
-from app.auth.security import hash_password, _check_password
-from app.services.user import normalize_email, get_user_by_email
+from app.schemas.auth import UserCreate
+from app.services.user import get_user_by_email, normalize_email
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 _DUMMY_HASH = hash_password("dummy-password")
 
+_CREDENTIALS_EXCEPTION = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
-async def register_user(session: AsyncSession, user_data: UserCreateSchema) -> User:
+
+async def _check_password(plain: str, hashed: str) -> bool:
+    return await asyncio.to_thread(verify_password, plain, hashed)
+
+
+async def register_user(session: AsyncSession, user_data: UserCreate) -> User:
     email = normalize_email(user_data.email)
 
-    result = await session.execute(
-        select(User.id).where(
-            (User.email == email) | (User.username == user_data.username)
-        )
+    existing_id = await session.scalar(
+        select(User.id)
+        .where(or_(User.email == email, User.username == user_data.username))
+        .limit(1)
     )
-    if result.first():
+    if existing_id is not None:
         raise UserAlreadyExistsError("Email or username already exists")
 
     user = User(
         email=email,
         username=user_data.username,
-        password=await asyncio.to_thread(hash_password, user_data.password),
+        password_hash=await asyncio.to_thread(hash_password, user_data.password),
     )
     session.add(user)
     try:
@@ -37,12 +50,11 @@ async def register_user(session: AsyncSession, user_data: UserCreateSchema) -> U
         await session.rollback()
         raise UserAlreadyExistsError("Email or username already exists") from None
 
-    await session.refresh(user)
     return user
 
 
 async def authenticate_user(session: AsyncSession, email: str, password: str) -> User | None:
-    user = await get_user_by_email(session, email)
+    user = await get_user_by_email(session, email) 
 
     has_password = user is not None and user.password_hash is not None
     hashed = user.password_hash if has_password else _DUMMY_HASH
@@ -50,6 +62,7 @@ async def authenticate_user(session: AsyncSession, email: str, password: str) ->
 
     if not has_password or not password_ok:
         return None
+
     if not user.is_active:
         return None
     return user

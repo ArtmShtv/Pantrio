@@ -1,25 +1,26 @@
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.exceptions import UserAlreadyExistsError
 from app.db.config import SessionDep
 from app.db.models.user import User
-from app.schemas.auth import UserCreate, UserRead, UserLoginSchema
+from app.schemas.auth import UserCreate, UserLoginSchema, UserRead
 from app.schemas.tokens import TokenPairSchema
-from app.services.auth import register_user, authenticate_user
-from app.services.tokens import create_access_token, create_refresh_token
+from app.services.auth import authenticate_user, register_user
+from app.services.tokens import issue_token_pair
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-_INVALID_CREDENTIALS = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Incorrect email or password",
-    headers={"WWW-Authenticate": "Bearer"},
-)
+_401 = {status.HTTP_401_UNAUTHORIZED: {"description": "Incorrect email or password"}}
 
-def _issue_tokens(user: User) -> TokenPairSchema:
-    return TokenPairSchema(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
+
+def _invalid_credentials() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect email or password",
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
 
@@ -38,17 +39,32 @@ async def register(user_data: UserCreate, session: SessionDep) -> User:
 
 
 @router.post(
-    "/login",
-    response_model=TokenPairSchema,
-    summary="Log in with JSON",
-    #dependencies=[Depends(limit_login_attempts)],
-    responses={429: {"description": "Too many login attempts"}},
+    "/login", 
+    response_model=TokenPairSchema, 
+    summary="Log in with JSON", 
+    responses=_401
 )
-async def login_json(data: UserLoginSchema, session: SessionDep):
+async def login_json(data: UserLoginSchema, session: SessionDep) -> TokenPairSchema:
     user = await authenticate_user(session, data.email, data.password)
-    if not user:
-        raise _INVALID_CREDENTIALS
-    return _issue_tokens(user)
+    if user is None:
+        raise _invalid_credentials()
+    return await issue_token_pair(session, user.id)
+
+
+@router.post(
+    "/token",
+    response_model=TokenPairSchema,
+    summary="Log in with form data (used by the Authorize button in /docs)",
+    responses=_401,
+)
+async def login_form(
+    form: Annotated[OAuth2PasswordRequestForm, Depends()], 
+    session: SessionDep
+) -> TokenPairSchema:
+    user = await authenticate_user(session, form.username, form.password)
+    if user is None:
+        raise _invalid_credentials()
+    return await issue_token_pair(session, user.id)
 
 
 @router.post("/login/OAuth/2.0")
