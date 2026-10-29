@@ -8,7 +8,6 @@ async def test_health(client: AsyncClient) -> None:
 
 
 async def test_health_db(client: AsyncClient) -> None:
-    """Needs Postgres running (docker compose up -d)."""
     response = await client.get("/health/db")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}

@@ -21,10 +21,6 @@ def verify_password(password: str, hashed: str) -> bool:
     return password_hash.verify(password, hashed)
 
 
-async def _check_password(plain: str, hashed: str) -> bool:
-    return await asyncio.to_thread(verify_password, plain, hashed)
-
-
 @dataclass(frozen=True)
 class IssuedToken:
     token: str

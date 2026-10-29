@@ -49,7 +49,7 @@ class UserCreateSchema(BaseModel):
     )
 
 
-class UserRead(BaseModel):
+class UserReadSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int

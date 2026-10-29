@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.security import hash_password, verify_password
 from app.core.exceptions import UserAlreadyExistsError
 from app.db.models.user import User
-from app.schemas.auth import UserCreate
+from app.schemas.auth import UserCreateSchema
 from app.services.user import get_user_by_email, normalize_email
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -27,7 +27,7 @@ async def _check_password(plain: str, hashed: str) -> bool:
     return await asyncio.to_thread(verify_password, plain, hashed)
 
 
-async def register_user(session: AsyncSession, user_data: UserCreate) -> User:
+async def register_user(session: AsyncSession, user_data: UserCreateSchema) -> User:
     email = normalize_email(user_data.email)
 
     existing_id = await session.scalar(
