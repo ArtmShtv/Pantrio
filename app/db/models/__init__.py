@@ -16,7 +16,8 @@ from app.db.models.enums import AuthProvider, MealType, Unit
 from app.db.models.meal import Meal, RecipeItem
 from app.db.models.pantry import Leftover
 from app.db.models.plan import PlanSlot, WeekPlan
-from app.db.models.user import RefreshToken, SocialAccount, User
+from app.db.models.refresh_token import RefreshToken
+from app.db.models.user import SocialAccount, User
 
 __all__ = [
     "AuthProvider",

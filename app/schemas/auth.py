@@ -8,6 +8,7 @@ from pydantic import (
     EmailStr,
     Field,
     StringConstraints,
+    field_validator,
 )
 
 _USERNAME_RE = re.compile(r"[a-z0-9_.-]+")
@@ -60,3 +61,19 @@ class UserReadSchema(BaseModel):
 class UserLoginSchema(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)
+
+
+class UserUpdateSchema(BaseModel):
+    # Unknown fields (email, password, is_active, ...) -> 422 instead of being
+    # silently ignored, so the client learns they can't be changed here.
+    model_config = ConfigDict(extra="forbid")
+
+    username: Username | None = None
+
+    @field_validator("username")
+    @classmethod
+    def username_not_null(cls, v: str | None) -> str:
+        # Runs only when the field is sent; an explicit null is rejected.
+        if v is None:
+            raise ValueError("username cannot be null")
+        return v

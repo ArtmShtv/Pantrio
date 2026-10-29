@@ -1,8 +1,6 @@
-"""Auth models: users, linked OAuth accounts, refresh tokens."""
-import uuid
-from datetime import datetime
+"""Auth models: users and linked OAuth accounts (refresh tokens: refresh_token.py)."""
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, false, true
+from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint, false, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.models.base import Base, created_at, int_pk, updated_at
@@ -62,20 +60,3 @@ class SocialAccount(Base):
         UniqueConstraint("user_id", "provider"),
     )
 
-
-class RefreshToken(Base):
-    """One row per issued refresh token, keyed by the token's `jti` claim.
-
-    Rotation: on /refresh, revoke the presented token and point
-    replaced_by_jti to the new one. If a token that is already revoked
-    gets presented again, it was stolen and replayed. Revoke the whole
-    chain (all of the user's tokens) in that case.
-    """
-
-    id: Mapped[int_pk]
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    jti: Mapped[uuid.UUID] = mapped_column(unique=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    replaced_by_jti: Mapped[uuid.UUID | None]
-    created_at: Mapped[created_at]

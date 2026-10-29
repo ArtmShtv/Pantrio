@@ -32,6 +32,18 @@ Key design rules
 - Meal suggestions rank meals by how much of their ingredients the
   pantry covers (scoring method still being decided)
 
+Code style: comments
+- Do not add comments to code. This includes inline comments, block
+  comments, and docstrings, unless I explicitly ask for them.
+- Put explanations of reasoning and design choices in the chat
+  response, never in the code.
+- Do not leave TODO/FIXME notes, commented-out code, or "changed X"
+  remarks in files.
+- When editing existing files, keep comments that are already there
+  and don't add new ones.
+- Use clear names (functions, variables, Pydantic models) instead of
+  comments to make the code self-explanatory.
+
 Open decisions
 - Meal suggestion scoring: share of ingredients, grams, or money saved
 - Whether an OAuth login with an existing email links automatically

@@ -1,7 +1,5 @@
 import asyncio
 
-from fastapi import HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,15 +10,7 @@ from app.db.models.user import User
 from app.schemas.auth import UserCreateSchema
 from app.services.user import get_user_by_email, normalize_email
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
 _DUMMY_HASH = hash_password("dummy-password")
-
-_CREDENTIALS_EXCEPTION = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
-)
 
 
 async def _check_password(plain: str, hashed: str) -> bool:

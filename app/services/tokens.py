@@ -1,23 +1,22 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.security import create_token
-from app.db.models.user import RefreshToken
-from app.schemas.tokens import TokenPairSchema
+from app.core.security import access_ttl, create_access_token
+from app.schemas.tokens import TokenResponse
+from app.services.sessions import start_session
 
 
-async def issue_token_pair(session: AsyncSession, user_id: int) -> TokenPairSchema:
-    """Create an access + refresh pair and record the refresh token.
-
-    The access token is stateless: it is short-lived and never stored.
-    The refresh token is long-lived, so it gets a row keyed by its jti.
-    That row is what lets /refresh rotate it and /logout revoke it.
-    """
-    access = create_token(user_id, "access")
-    refresh = create_token(user_id, "refresh")
-
-    session.add(
-        RefreshToken(user_id=user_id, jti=refresh.jti, expires_at=refresh.expires_at)
+def token_response(user_id: int) -> TokenResponse:
+    return TokenResponse(
+        access_token=create_access_token(user_id),
+        expires_in=int(access_ttl().total_seconds()),
     )
-    await session.commit()
 
-    return TokenPairSchema(access_token=access.token, refresh_token=refresh.token)
+
+async def issue_tokens(session: AsyncSession, user_id: int) -> tuple[TokenResponse, str]:
+    """Start a new login session.
+
+    Returns (response body with the access token, raw refresh token).
+    The caller puts the raw refresh token into the cookie.
+    """
+    raw_refresh = await start_session(session, user_id)
+    return token_response(user_id), raw_refresh

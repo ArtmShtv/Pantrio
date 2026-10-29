@@ -29,6 +29,10 @@ class Settings(BaseSettings):
 
     JWT_SECRET: SecretStr = Field(min_length=32)
     JWT_ALGORITHM: str = "HS256"
+    # iss/aud claims: a token minted by another service that happens to share
+    # the secret (or a token meant for a different API) is rejected.
+    JWT_ISSUER: str = "pantrio"
+    JWT_AUDIENCE: str = "pantrio-api"
     ACCESS_TOKEN_TTL_MINUTES: int = 15
     REFRESH_TOKEN_TTL_DAYS: int = 30
     SESSION_SECRET: SecretStr = Field(min_length=32)
