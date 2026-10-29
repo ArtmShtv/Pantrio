@@ -58,7 +58,7 @@ jobs:
       POSTGRES_DB: pantrio_test
       POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
-      JWT_SECRET: ci-jwt-secret
+      JWT_SECRET: ci-jwt-secret-at-least-32-characters-long
       SESSION_SECRET: ci-session-secret-at-least-32-chars-long
 
     steps:
