@@ -30,5 +30,5 @@ docker-compose.override.yml
 *.swp
 .DS_Store
 
-CLAUDE.md
 /docs
+CLAUDE.md

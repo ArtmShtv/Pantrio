@@ -105,8 +105,6 @@ def to_detail(meal: Meal) -> MealDetail:
     )
 
 
-
-
 async def list_meals(
     session: AsyncSession, user: User, *, q: str | None, scope: Scope, limit: int, offset: int
 ) -> tuple[Sequence[Meal], int]:
