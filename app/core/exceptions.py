@@ -16,3 +16,19 @@ class OAuthAccountConflictError(Exception):
 
 class InactiveUserError(Exception):
     pass
+
+
+class NotFoundError(Exception):
+    """The row doesn't exist or isn't visible to this user (-> 404)."""
+
+
+class PermissionDeniedError(Exception):
+    """The row is visible but this user may not change it (-> 403)."""
+
+
+class ConflictError(Exception):
+    """The change clashes with existing data (-> 409)."""
+
+
+class DomainValidationError(Exception):
+    """Input is well-formed but breaks a business rule (-> 422)."""

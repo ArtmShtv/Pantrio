@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
+from app.api.errors import register_exception_handlers
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.db.config import engine
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
         same_site="lax",
     )
 
+    register_exception_handlers(app)
     app.include_router(api_router)
     return app
 
