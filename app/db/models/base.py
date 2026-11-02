@@ -6,8 +6,6 @@ from sqlalchemy import DateTime, MetaData, func
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, declared_attr, mapped_column
 
-# Deterministic constraint names, so Alembic can later alter/drop them.
-# Without this, Postgres invents names and autogenerate can't target them.
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_N_name)s",
@@ -36,12 +34,8 @@ _CAMEL_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
 class Base(AsyncAttrs, DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
-    # Re-read server-generated values (created_at, updated_at) via RETURNING
-    # right after INSERT/UPDATE. In async code a later lazy refresh of an
-    # expired attribute raises MissingGreenlet, so fetch them eagerly.
     __mapper_args__ = {"eager_defaults": True}
 
     @declared_attr.directive
     def __tablename__(cls) -> str:
-        # ShopProduct -> shop_products, RecipeItem -> recipe_items
         return _CAMEL_BOUNDARY.sub("_", cls.__name__).lower() + "s"

@@ -50,8 +50,6 @@ async def list_pantry(session: AsyncSession, user: User) -> Sequence[Leftover]:
         .options(contains_eager(Leftover.ingredient))
         .where(Leftover.user_id == user.id)
         .order_by(func.lower(Ingredient.name), Ingredient.id)
-        # The writes below bypass the ORM, so objects already in the session
-        # may hold old amounts. populate_existing overwrites them with the DB values.
         .execution_options(populate_existing=True)
     )
     return rows.all()
@@ -81,8 +79,6 @@ async def set_quantity(
     stmt = insert(Leftover).values(user_id=user.id, ingredient_id=ing.id, quantity_g=grams)
     stmt = stmt.on_conflict_do_update(
         index_elements=[Leftover.user_id, Leftover.ingredient_id],
-        # onupdate=func.now() on the model only fires for ORM updates; a Core
-        # upsert has to set updated_at itself.
         set_={"quantity_g": stmt.excluded.quantity_g, "updated_at": func.now()},
     )
     await session.execute(stmt)
@@ -166,8 +162,6 @@ async def record_purchase(
     if missing := sorted(ids - found.keys()):
         raise DomainValidationError(f"Unknown ingredient id(s): {missing}")
 
-    # The same ingredient twice in one INSERT ... ON CONFLICT is an error in
-    # Postgres ("cannot affect row a second time"), so merge the lines first.
     amounts: dict[int, Decimal] = defaultdict(Decimal)
     for ln in lines:
         amounts[ln.ingredient_id] += grams_of(found[ln.ingredient_id], ln.quantity, ln.unit)

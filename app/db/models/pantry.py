@@ -28,8 +28,6 @@ class Leftover(Base):
     ingredient: Mapped[Ingredient] = relationship(lazy="raise")
 
     __table_args__ = (
-        # Makes INSERT ... ON CONFLICT (user_id, ingredient_id) DO UPDATE
-        # possible: add to the existing amount atomically, no read-then-write race.
         UniqueConstraint("user_id", "ingredient_id"),
         CheckConstraint("quantity_g > 0", name="quantity_positive"),
     )

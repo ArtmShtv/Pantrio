@@ -21,7 +21,7 @@ class OAuthIdentity:
     """What we keep from the provider's verified ID token."""
 
     provider: AuthProvider
-    subject: str  # the provider's stable user ID ("sub"); never changes
+    subject: str
     email: str | None
     email_verified: bool
 
@@ -39,8 +39,6 @@ async def login_with_oauth(session: AsyncSession, identity: OAuthIdentity) -> Us
             user = await _link_or_create(session, identity)
             await session.commit()
         except IntegrityError:
-            # Two callbacks for the same new identity raced (e.g. a double
-            # click). The other one won; its row is now there, so use it.
             await session.rollback()
             user = await _get_user_by_identity(session, identity)
             if user is None:
@@ -52,8 +50,6 @@ async def login_with_oauth(session: AsyncSession, identity: OAuthIdentity) -> Us
 
 
 async def _get_user_by_identity(session: AsyncSession, identity: OAuthIdentity) -> User | None:
-    # Look up by (provider, sub), never by email: the email on a Google
-    # account can change, the sub can't.
     return await session.scalar(
         select(User)
         .join(SocialAccount)
@@ -66,7 +62,6 @@ async def _get_user_by_identity(session: AsyncSession, identity: OAuthIdentity) 
 
 async def _link_or_create(session: AsyncSession, identity: OAuthIdentity) -> User:
     if not identity.email or not identity.email_verified:
-        # Without a verified email we can't tell whose account this should be.
         raise OAuthEmailNotVerifiedError
 
     email = normalize_email(identity.email)
@@ -76,15 +71,12 @@ async def _link_or_create(session: AsyncSession, identity: OAuthIdentity) -> Use
         user = User(
             email=email,
             username=await _free_username(session, email),
-            password_hash=None,  # this user can only log in through the provider
-            email_verified=True,  # the provider just proved it
+            password_hash=None,
+            email_verified=True,
         )
         session.add(user)
-        await session.flush()  # assigns user.id for the SocialAccount below
+        await session.flush()
     elif not user.email_verified:
-        # Someone registered this email with a password but never proved they
-        # own it. If we linked, that person's password would keep working on
-        # the real owner's account ("pre-account takeover"). Refuse instead.
         raise OAuthAccountConflictError
 
     session.add(
@@ -95,7 +87,7 @@ async def _link_or_create(session: AsyncSession, identity: OAuthIdentity) -> Use
             email_at_provider=email,
         )
     )
-    await session.flush()  # surfaces a unique-constraint race here, inside the try
+    await session.flush()
     return user
 
 

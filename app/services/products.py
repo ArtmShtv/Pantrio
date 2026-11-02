@@ -106,7 +106,6 @@ def _pack_grams(ing: Ingredient, size: Decimal, unit: Unit) -> Decimal:
         raise DomainValidationError(f"{ing.name!r}: {e}") from None
     grams = round_to(grams, GRAMS)
     if grams <= 0:
-        # e.g. 0.001 ml rounds to 0.00 g; the DB CHECK would reject it anyway.
         raise DomainValidationError("pack is too small")
     return grams
 
@@ -118,8 +117,6 @@ async def create_product(
         raise PermissionDeniedError("Only admins can create global products")
     ing = await ingredients.get_visible(session, user, data.ingredient_id)
     if make_global and ing.created_by_id is not None:
-        # Other users can't see a private ingredient, so a global product for it
-        # would be invisible to them anyway, and break when the owner deletes it.
         raise DomainValidationError("A global product needs a global ingredient")
 
     product = ShopProduct(

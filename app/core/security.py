@@ -59,7 +59,6 @@ def decode_access_token(token: str) -> dict:
 
 
 def generate_refresh_token() -> tuple[str, str]:
-    """Return (raw token for the client, hash for the database)."""
     raw = secrets.token_urlsafe(32)
     return raw, hash_refresh_token(raw)
 

@@ -14,9 +14,6 @@ from app.services.shopping import needs_from_slots
 
 
 async def _flip_cooked(session: AsyncSession, slot: PlanSlot, *, cooked: bool) -> None:
-    # Conditional UPDATE instead of "if slot.cooked_at: ...; slot.cooked_at = now":
-    # two parallel requests both pass a Python check, but only one of them can
-    # match `cooked_at IS NULL` in the database. The other gets 0 rows -> 409.
     now = datetime.now(UTC) if cooked else None
     condition = PlanSlot.cooked_at.is_(None) if cooked else PlanSlot.cooked_at.is_not(None)
     result = await session.execute(
@@ -28,7 +25,6 @@ async def _flip_cooked(session: AsyncSession, slot: PlanSlot, *, cooked: bool) -
     if result.scalar_one_or_none() is None:
         await session.rollback()
         raise ConflictError("This slot is already cooked" if cooked else "This slot isn't cooked")
-    # The DB already has the new value; tell the ORM without queuing another UPDATE.
     set_committed_value(slot, "cooked_at", now)
 
 
@@ -36,7 +32,7 @@ async def cook(
     session: AsyncSession, user: User, plan_id: int, slot_id: int
 ) -> tuple[PlanSlot, list[pantry.Change]]:
     slot = await plans.get_slot(session, user, plan_id, slot_id)
-    grams = needs_from_slots([slot])  # computed before the flip: it skips cooked slots
+    grams = needs_from_slots([slot])
     await _flip_cooked(session, slot, cooked=True)
     changes = await pantry.subtract_grams(session, user.id, grams)
     await session.commit()

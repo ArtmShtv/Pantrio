@@ -20,7 +20,6 @@ class RefreshToken(Base):
     id: Mapped[int_pk]
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     family_id: Mapped[uuid.UUID] = mapped_column(index=True)
-    # SHA-256 hex of the raw token; the raw value only ever exists in the cookie.
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

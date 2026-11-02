@@ -61,8 +61,6 @@ class UserLoginSchema(BaseModel):
 
 
 class UserUpdateSchema(BaseModel):
-    # Unknown fields (email, password, is_active, ...) -> 422 instead of being
-    # silently ignored, so the client learns they can't be changed here.
     model_config = ConfigDict(extra="forbid")
 
     username: Username | None = None
@@ -70,7 +68,6 @@ class UserUpdateSchema(BaseModel):
     @field_validator("username")
     @classmethod
     def username_not_null(cls, v: str | None) -> str:
-        # Runs only when the field is sent; an explicit null is rejected.
         if v is None:
             raise ValueError("username cannot be null")
         return v

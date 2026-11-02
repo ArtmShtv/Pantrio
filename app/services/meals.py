@@ -38,7 +38,6 @@ from app.services.calc import (
     total,
 )
 
-# Every read needs items and their ingredients; the relationships are lazy="raise".
 WITH_ITEMS = selectinload(Meal.items).selectinload(RecipeItem.ingredient)
 
 
@@ -160,7 +159,6 @@ async def _build_items(
         )
     }
     if missing := [i for i in ids if i not in found]:
-        # Unknown and invisible look the same on purpose: no existence leak.
         raise DomainValidationError(f"Unknown ingredient id(s): {missing}")
 
     rows = []
@@ -179,8 +177,6 @@ async def _build_items(
             )
         except UnitNotSupportedError as e:
             raise DomainValidationError(f"{ing.name!r}: {e}") from None
-        # Assigning the relationship (not just ingredient_id) keeps item.ingredient
-        # loaded, so the response can be built without another query.
         rows.append(RecipeItem(ingredient=ing, quantity=line.quantity, unit=line.unit))
     return rows
 
@@ -208,9 +204,6 @@ async def replace_meal(session: AsyncSession, user: User, meal_id: int, data: Me
 
     meal.name = data.name
     meal.servings = data.servings
-    # Delete the old lines *before* inserting the new ones. In one flush,
-    # SQLAlchemy inserts before it deletes, so keeping an ingredient (rice ->
-    # rice with a new quantity) would hit UNIQUE (meal_id, ingredient_id).
     meal.items.clear()
     await session.flush()
     meal.items.extend(new_items)
@@ -239,8 +232,6 @@ async def _commit_or_conflict(session: AsyncSession, name: str) -> None:
         await session.commit()
     except IntegrityError as e:
         await session.rollback()
-        # Only the name constraint means "name taken"; anything else is a bug
-        # and should surface as a 500, not as a misleading 409.
         if constraint_name(e) == "uq_meals_created_by_id_name":
             raise ConflictError(f"A meal named {name!r} already exists") from None
         raise

@@ -37,7 +37,6 @@ async def list_ingredients(
 ) -> tuple[Sequence[Ingredient], int]:
     conditions = [_scope_filter(user, scope)]
     if q:
-        # autoescape: a search for "100%" matches a literal "%", not "anything".
         conditions.append(Ingredient.name.icontains(q, autoescape=True))
 
     total = await session.scalar(select(func.count()).select_from(Ingredient).where(*conditions))
@@ -61,7 +60,6 @@ async def get_visible(session: AsyncSession, user: User, ingredient_id: int) -> 
 
 
 def _ensure_can_edit(user: User, ing: Ingredient) -> None:
-    # Other users' private rows never get here: get_visible already 404'd.
     if ing.created_by_id is None and not user.is_admin:
         raise PermissionDeniedError("Only admins can change global ingredients")
 
@@ -69,8 +67,7 @@ def _ensure_can_edit(user: User, ing: Ingredient) -> None:
 async def _ensure_name_free(
     session: AsyncSession, owner_id: int | None, name: str, exclude_id: int | None = None
 ) -> None:
-    # Case-insensitive on purpose: "Rice" and "rice" in one list is a mistake.
-    # The DB unique constraint is case-sensitive, so it can't catch this.
+
     owner = (
         Ingredient.created_by_id.is_(None)
         if owner_id is None
@@ -161,7 +158,6 @@ async def delete_ingredient(session: AsyncSession, user: User, ingredient_id: in
     try:
         await session.commit()
     except IntegrityError:
-        # A recipe started using it between our check and the delete (FK RESTRICT).
         await session.rollback()
         raise ConflictError("Ingredient is used by a meal") from None
 
@@ -170,6 +166,5 @@ async def _commit_or_conflict(session: AsyncSession, name: str) -> None:
     try:
         await session.commit()
     except IntegrityError:
-        # Two requests created the same name at once; the unique constraint caught it.
         await session.rollback()
         raise ConflictError(f"An ingredient named {name!r} already exists") from None

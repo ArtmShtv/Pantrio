@@ -91,7 +91,6 @@ async def login_form(
     session: SessionDep,
     response: Response,
 ) -> TokenResponse:
-    # The OAuth2 form field is called "username"; we treat it as the email.
     user = await authenticate_user(session, form.username, form.password)
     if user is None:
         raise _invalid_credentials()
@@ -110,8 +109,6 @@ async def refresh(session: SessionDep, response: Response, refresh_token: Refres
             raise InvalidRefreshToken
         user, new_raw = await rotate_refresh_token(session, refresh_token)
     except InvalidRefreshToken:
-        # Return (not raise) so we can also wipe the dead cookie: cookies set
-        # on `response` are discarded when an HTTPException is raised.
         error = JSONResponse(
             {"detail": "Invalid refresh token"}, status_code=status.HTTP_401_UNAUTHORIZED
         )
@@ -124,8 +121,6 @@ async def refresh(session: SessionDep, response: Response, refresh_token: Refres
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, summary="End this session")
 async def logout(session: SessionDep, refresh_token: RefreshCookie = None) -> Response:
-    # No access token required: it may already be expired when the user logs out.
-    # Idempotent: logging out twice, or with no cookie, is still a 204.
     if refresh_token:
         await revoke_session(session, refresh_token)
     response = Response(status_code=status.HTTP_204_NO_CONTENT)

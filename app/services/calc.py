@@ -16,8 +16,6 @@ ONE_DECIMAL = Decimal("0.1")
 
 
 def round_to(value: Decimal, step: Decimal) -> Decimal:
-    # Half-up, as people expect: 0.25 -> 0.3. Decimal's default is banker's
-    # rounding (half-even), where 0.25 -> 0.2 but 0.35 -> 0.4.
     return value.quantize(step, rounding=ROUND_HALF_UP)
 
 

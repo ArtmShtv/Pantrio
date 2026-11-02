@@ -28,8 +28,6 @@ class CreateScope(StrEnum):
 
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
-# Limits match the DB column types, so bad input is a 422 here, not a DB error.
-# decimal_places rejects 12.345 instead of the DB silently rounding it.
 Kcal = Annotated[Decimal, Field(ge=0, le=900, max_digits=6, decimal_places=2)]
 Macro = Annotated[Decimal, Field(ge=0, le=100, max_digits=5, decimal_places=2)]
 GramsPerPiece = Annotated[Decimal, Field(gt=0, max_digits=10, decimal_places=2)]
@@ -67,14 +65,12 @@ class IngredientUpdate(BaseModel):
     protein: Macro | None = None
     fat: Macro | None = None
     carbs: Macro | None = None
-    # null is allowed here: it means "can't be measured in pieces/ml any more".
     grams_per_piece: GramsPerPiece | None = None
     grams_per_ml: GramsPerMl | None = None
 
     @field_validator("name", "calories", "protein", "fat", "carbs")
     @classmethod
     def not_null(cls, v: object) -> object:
-        # Runs only for fields that were sent, so an omitted field is fine.
         if v is None:
             raise ValueError("can't be null")
         return v

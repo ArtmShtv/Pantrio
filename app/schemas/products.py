@@ -48,7 +48,6 @@ class ProductUpdate(BaseModel):
         for field in sent:
             if getattr(self, field) is None:
                 raise ValueError(f"{field} can't be null")
-        # "930" alone is ambiguous: 930 of what? Require both or neither.
         if ("pack_size" in sent) != ("pack_unit" in sent):
             raise ValueError("pack_size and pack_unit must be sent together")
         return self

@@ -13,10 +13,5 @@ def token_response(user_id: int) -> TokenResponse:
 
 
 async def issue_tokens(session: AsyncSession, user_id: int) -> tuple[TokenResponse, str]:
-    """Start a new login session.
-
-    Returns (response body with the access token, raw refresh token).
-    The caller puts the raw refresh token into the cookie.
-    """
     raw_refresh = await start_session(session, user_id)
     return token_response(user_id), raw_refresh

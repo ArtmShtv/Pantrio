@@ -37,7 +37,6 @@ async def _revoke_family(db: AsyncSession, family_id: uuid.UUID) -> None:
 
 
 async def start_session(db: AsyncSession, user_id: int) -> str:
-    """Call after a successful login/registration. Returns the raw refresh token."""
     row, raw = _new_token(user_id, uuid.uuid4())
     db.add(row)
     await db.commit()
@@ -45,22 +44,15 @@ async def start_session(db: AsyncSession, user_id: int) -> str:
 
 
 async def rotate_refresh_token(db: AsyncSession, raw: str) -> tuple[User, str]:
-    """Consume `raw` and return (user, new raw refresh token).
-
-    Raises InvalidRefreshToken if the token is unknown, expired, revoked,
-    reused, or belongs to a disabled user.
-    """
     token = await db.scalar(
         select(RefreshToken)
         .where(RefreshToken.token_hash == hash_refresh_token(raw))
-        .with_for_update()  # two parallel refreshes can't both succeed
+        .with_for_update()
     )
     if token is None:
         raise InvalidRefreshToken
 
     if token.used_at is not None or token.revoked_at is not None:
-        # Reuse: someone holds a copy of an old token. We can't tell who is
-        # the real user, so the whole session (family) dies.
         await _revoke_family(db, token.family_id)
         await db.commit()
         raise InvalidRefreshToken

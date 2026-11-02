@@ -22,7 +22,7 @@ from app.services.calc import Nutrition, total
 _MEAL_WITH_ITEMS = (
     selectinload(PlanSlot.meal).selectinload(Meal.items).selectinload(RecipeItem.ingredient)
 )
-_MEAL_TYPE_ORDER = {t: i for i, t in enumerate(MealType)}  # breakfast, lunch, dinner, snack
+_MEAL_TYPE_ORDER = {t: i for i, t in enumerate(MealType)}
 
 
 def slot_nutrition(slot: PlanSlot) -> Nutrition:
@@ -64,8 +64,6 @@ def to_detail(plan: WeekPlan) -> PlanDetail:
         )
 
     week = total(day_totals)
-    # Average over days that have food planned, not over 7: a plan with only
-    # weekdays filled in shouldn't show a misleadingly low daily intake.
     average = week.scale(Decimal(1) / len(day_totals)) if day_totals else Nutrition()
     return PlanDetail(
         id=plan.id,
@@ -176,7 +174,6 @@ async def _visible_meal(session: AsyncSession, user: User, meal_id: int) -> Meal
     try:
         return await meals_service.get_visible(session, user, meal_id)
     except NotFoundError:
-        # The meal is in the body, not the URL: a bad reference is a 422.
         raise DomainValidationError(f"Unknown meal id: {meal_id}") from None
 
 
@@ -200,8 +197,6 @@ async def update_slot(
 ) -> PlanSlot:
     slot = await get_slot(session, user, plan_id, slot_id)
     if slot.cooked_at is not None:
-        # Cooking subtracted this slot's ingredients from the pantry; editing it
-        # now would make the pantry and the plan disagree.
         raise ConflictError("This slot is already cooked; un-cook it first")
 
     if "meal_id" in changes:

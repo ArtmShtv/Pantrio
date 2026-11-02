@@ -30,7 +30,7 @@ class Strategy(StrEnum):
 class LineIn:
     ingredient: Ingredient
     need_g: Decimal
-    have_g: Decimal  # already capped: min(pantry, need)
+    have_g: Decimal
     price_per_g: Decimal | None
 
 
@@ -112,7 +112,6 @@ async def suggest(
     if not pantry:
         return []
 
-    # Only meals that use at least one pantry ingredient can score above 0.
     uses_pantry = (
         select(RecipeItem.meal_id).where(RecipeItem.ingredient_id.in_(pantry)).scalar_subquery()
     )
