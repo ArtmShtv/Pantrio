@@ -75,3 +75,14 @@ class ProductRead(BaseModel):
             price_per_kg=price_per_kg(p.price, p.pack_size_g),
             is_global=p.created_by_id is None,
         )
+
+
+class ProductWithIngredient(ProductRead):
+    ingredient: IngredientRef
+
+    @classmethod
+    def from_model(cls, p: ShopProduct) -> Self:
+        return cls(
+            **ProductRead.from_model(p).model_dump(),
+            ingredient=IngredientRef(id=p.ingredient.id, name=p.ingredient.name),
+        )

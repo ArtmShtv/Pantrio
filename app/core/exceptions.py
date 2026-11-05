@@ -30,5 +30,11 @@ class ConflictError(Exception):
     """The change clashes with existing data (-> 409)."""
 
 
+class PlanAlreadyExistsError(ConflictError):
+    def __init__(self, plan_id: int) -> None:
+        super().__init__(f"A plan for this week already exists (id {plan_id})")
+        self.plan_id = plan_id
+
+
 class DomainValidationError(Exception):
     """Input is well-formed but breaks a business rule (-> 422)."""

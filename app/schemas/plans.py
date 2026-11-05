@@ -26,6 +26,11 @@ class PlanCreate(BaseModel):
         return v
 
 
+class PlanExistsResponse(BaseModel):
+    detail: str
+    plan_id: int
+
+
 class PlanListItem(BaseModel):
     id: int
     start_date: date

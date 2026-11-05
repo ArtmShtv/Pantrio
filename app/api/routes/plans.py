@@ -6,7 +6,15 @@ from fastapi import APIRouter, Query, status
 from app.api.deps import DB, CurrentUser
 from app.schemas.common import Page
 from app.schemas.pantry import CookResult, PantryChange
-from app.schemas.plans import PlanCreate, PlanDetail, PlanListItem, SlotCreate, SlotRead, SlotUpdate
+from app.schemas.plans import (
+    PlanCreate,
+    PlanDetail,
+    PlanExistsResponse,
+    PlanListItem,
+    SlotCreate,
+    SlotRead,
+    SlotUpdate,
+)
 from app.schemas.products import IngredientRef
 from app.schemas.shopping import ShoppingListRead
 from app.services import cooking, shopping
@@ -38,7 +46,12 @@ async def list_plans(
     "",
     response_model=PlanDetail,
     status_code=status.HTTP_201_CREATED,
-    responses={status.HTTP_409_CONFLICT: {"description": "A plan for this week exists"}},
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "model": PlanExistsResponse,
+            "description": "A plan for this week exists",
+        }
+    },
 )
 async def create_plan(data: PlanCreate, user: CurrentUser, db: DB):
     return service.to_detail(await service.create_plan(db, user, data.start_date))

@@ -1,12 +1,14 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from sqlalchemy import URL
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+
+API_PREFIX = "/api"
 
 
 class Settings(BaseSettings):
@@ -41,6 +43,25 @@ class Settings(BaseSettings):
     YANDEX_CLIENT_SECRET: SecretStr | None = None
     VK_CLIENT_ID: str | None = None
     VK_CLIENT_SECRET: SecretStr | None = None
+
+    FRONTEND_URL: str = "http://localhost:5173"
+    CORS_ORIGINS: Annotated[list[str], NoDecode] = []
+
+    @field_validator("FRONTEND_URL")
+    @classmethod
+    def strip_trailing_slash(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("must be an absolute http(s) URL")
+        return v.rstrip("/")
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def split_origins(cls, v: object) -> object:
+        if isinstance(v, str):
+            v = [origin.strip().rstrip("/") for origin in v.split(",") if origin.strip()]
+        if isinstance(v, list) and "*" in v:
+            raise ValueError("'*' can't be used: the refresh cookie needs credentials")
+        return v
 
     @property
     def DATABASE_ASYNC_URL(self) -> URL:

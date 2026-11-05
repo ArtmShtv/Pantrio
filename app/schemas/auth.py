@@ -53,6 +53,7 @@ class UserReadSchema(BaseModel):
     id: int
     email: str
     username: str
+    is_admin: bool
 
 
 class UserLoginSchema(BaseModel):

@@ -8,7 +8,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.exceptions import ConflictError, DomainValidationError, NotFoundError
+from app.core.exceptions import (
+    ConflictError,
+    DomainValidationError,
+    NotFoundError,
+    PlanAlreadyExistsError,
+)
 from app.db.errors import constraint_name
 from app.db.models.enums import MealType
 from app.db.models.meal import Meal, RecipeItem
@@ -119,12 +124,16 @@ async def get_plan(session: AsyncSession, user: User, plan_id: int) -> WeekPlan:
     return plan
 
 
-async def create_plan(session: AsyncSession, user: User, start_date: date) -> WeekPlan:
-    existing = await session.scalar(
+async def _existing_plan_id(session: AsyncSession, user: User, start_date: date) -> int | None:
+    return await session.scalar(
         select(WeekPlan.id).where(WeekPlan.user_id == user.id, WeekPlan.start_date == start_date)
     )
+
+
+async def create_plan(session: AsyncSession, user: User, start_date: date) -> WeekPlan:
+    existing = await _existing_plan_id(session, user, start_date)
     if existing is not None:
-        raise ConflictError(f"A plan for this week already exists (id {existing})")
+        raise PlanAlreadyExistsError(existing)
 
     plan = WeekPlan(user_id=user.id, start_date=start_date)
     plan.slots = []
@@ -134,6 +143,9 @@ async def create_plan(session: AsyncSession, user: User, start_date: date) -> We
     except IntegrityError as e:
         await session.rollback()
         if constraint_name(e) == "uq_week_plans_user_id_start_date":
+            existing = await _existing_plan_id(session, user, start_date)
+            if existing is not None:
+                raise PlanAlreadyExistsError(existing) from None
             raise ConflictError("A plan for this week already exists") from None
         raise
     return plan

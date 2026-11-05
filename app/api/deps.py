@@ -4,13 +4,14 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
+from app.core.config import API_PREFIX
 from app.core.security import decode_access_token
 from app.db.config import SessionDep
 from app.db.models.user import User
 
 DB = SessionDep
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{API_PREFIX}/auth/token", auto_error=False)
 
 
 async def get_current_user(

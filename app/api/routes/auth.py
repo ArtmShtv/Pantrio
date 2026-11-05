@@ -1,15 +1,19 @@
 """Auth endpoints.
 
 Token flow:
-- /login, /token and the OAuth callback start a session: the access token is
+- /register, /login and /token start a session: the access token is
   returned in the JSON body, the refresh token is set as an httpOnly cookie.
+- The OAuth callback only sets the cookie and redirects to the frontend,
+  which then calls /refresh to get its first access token.
 - The client keeps the access token in memory and sends it as
   `Authorization: Bearer ...`. When it expires (401), the client calls
   /refresh; the browser attaches the cookie automatically.
 - /logout revokes the session and clears the cookie.
 """
 
+from enum import StrEnum
 from typing import Annotated
+from urllib.parse import urlencode
 
 from authlib.integrations.starlette_client import OAuthError
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
@@ -18,6 +22,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from joserfc.errors import JoseError
 
 from app.auth.oauth import get_oauth_client
+from app.core.config import get_settings
 from app.core.cookies import REFRESH_COOKIE, clear_refresh_cookie, set_refresh_cookie
 from app.core.exceptions import (
     InactiveUserError,
@@ -27,12 +32,16 @@ from app.core.exceptions import (
 )
 from app.db.config import SessionDep
 from app.db.models.enums import AuthProvider
-from app.db.models.user import User
-from app.schemas.auth import UserCreateSchema, UserLoginSchema, UserReadSchema
+from app.schemas.auth import UserCreateSchema, UserLoginSchema
 from app.schemas.tokens import TokenResponse
 from app.services.auth import authenticate_user, register_user
 from app.services.oauth import OAuthIdentity, login_with_oauth
-from app.services.sessions import InvalidRefreshToken, revoke_session, rotate_refresh_token
+from app.services.sessions import (
+    InvalidRefreshToken,
+    revoke_session,
+    rotate_refresh_token,
+    start_session,
+)
 from app.services.tokens import issue_tokens, token_response
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -58,16 +67,19 @@ async def _start_session(session: SessionDep, response: Response, user_id: int) 
 
 @router.post(
     "/register",
-    response_model=UserReadSchema,
+    response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new user",
+    summary="Create a new user and log them in",
     responses={status.HTTP_409_CONFLICT: {"description": "Email or username already exists"}},
 )
-async def register(user_data: UserCreateSchema, session: SessionDep) -> User:
+async def register(
+    user_data: UserCreateSchema, session: SessionDep, response: Response
+) -> TokenResponse:
     try:
-        return await register_user(session, user_data)
+        user = await register_user(session, user_data)
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
+    return await _start_session(session, response, user.id)
 
 
 @router.post("/login", response_model=TokenResponse, summary="Log in with JSON", responses=_401)
@@ -128,6 +140,21 @@ async def logout(session: SessionDep, refresh_token: RefreshCookie = None) -> Re
     return response
 
 
+class OAuthCallbackError(StrEnum):
+    NOT_CONFIGURED = "not_configured"
+    PROVIDER_ERROR = "provider_error"
+    EMAIL_NOT_VERIFIED = "email_not_verified"
+    ACCOUNT_EXISTS = "account_exists"
+    ACCOUNT_DISABLED = "account_disabled"
+
+
+def _frontend_callback(error: OAuthCallbackError | None = None) -> RedirectResponse:
+    url = f"{get_settings().FRONTEND_URL}/auth/callback"
+    if error is not None:
+        url += "?" + urlencode({"error": error.value})
+    return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
+
+
 def _oauth_client_or_501(provider: AuthProvider):
     client = get_oauth_client(provider)
     if client is None:
@@ -150,32 +177,27 @@ async def oauth_login(provider: AuthProvider, request: Request):
 
 @router.get(
     "/{provider}/callback",
-    response_model=TokenResponse,
     summary="OAuth callback (the provider redirects here)",
+    response_class=RedirectResponse,
+    status_code=status.HTTP_302_FOUND,
     responses={
-        status.HTTP_400_BAD_REQUEST: {"description": "Login failed or email not verified"},
-        status.HTTP_403_FORBIDDEN: {"description": "Account is disabled"},
-        status.HTTP_409_CONFLICT: {"description": "Email belongs to a password account"},
+        status.HTTP_302_FOUND: {
+            "description": "To FRONTEND_URL/auth/callback, with ?error=<code> on failure"
+        }
     },
 )
-async def oauth_callback(
-    provider: AuthProvider, request: Request, session: SessionDep, response: Response
-) -> TokenResponse:
-    client = _oauth_client_or_501(provider)
+async def oauth_callback(provider: AuthProvider, request: Request, session: SessionDep):
+    client = get_oauth_client(provider)
+    if client is None:
+        return _frontend_callback(OAuthCallbackError.NOT_CONFIGURED)
     try:
         token = await client.authorize_access_token(request)
-    except OAuthError as e:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"{provider} login failed: {e.error}"
-        ) from None
-    except JoseError:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"{provider} login failed: invalid ID token"
-        ) from None
+    except (OAuthError, JoseError):
+        return _frontend_callback(OAuthCallbackError.PROVIDER_ERROR)
 
     claims = token.get("userinfo")
     if not claims or "sub" not in claims:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{provider} returned no identity")
+        return _frontend_callback(OAuthCallbackError.PROVIDER_ERROR)
 
     identity = OAuthIdentity(
         provider=provider,
@@ -186,15 +208,13 @@ async def oauth_callback(
     try:
         user = await login_with_oauth(session, identity)
     except OAuthEmailNotVerifiedError:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, f"Your {provider} email address is not verified"
-        ) from None
+        return _frontend_callback(OAuthCallbackError.EMAIL_NOT_VERIFIED)
     except OAuthAccountConflictError:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "An account with this email already exists. Log in with your password.",
-        ) from None
+        return _frontend_callback(OAuthCallbackError.ACCOUNT_EXISTS)
     except InactiveUserError:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Account is disabled") from None
+        return _frontend_callback(OAuthCallbackError.ACCOUNT_DISABLED)
 
-    return await _start_session(session, response, user.id)
+    raw_refresh = await start_session(session, user.id)
+    redirect = _frontend_callback()
+    set_refresh_cookie(redirect, raw_refresh)
+    return redirect

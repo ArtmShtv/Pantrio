@@ -40,7 +40,7 @@ async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
         yield db_session
 
     app.dependency_overrides[get_session] = _session
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test/api") as c:
         yield c
 
 
@@ -56,12 +56,8 @@ def make_user(client: AsyncClient, db_session: AsyncSession) -> Callable[..., Aw
         )
         assert r.status_code == 201, r.text
         if admin:
-            await db_session.execute(
-                update(User).where(User.id == r.json()["id"]).values(is_admin=True)
-            )
+            await db_session.execute(update(User).where(User.email == email).values(is_admin=True))
             db_session.expire_all()
-        r = await client.post("/auth/login", json={"email": email, "password": password})
-        assert r.status_code == 200, r.text
         return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
     return _make

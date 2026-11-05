@@ -20,7 +20,8 @@ uv run fastapi dev app/main.py
 ```
 
 - API docs: http://127.0.0.1:8000/docs
-- Liveness: `GET /health` · Database check: `GET /health/db`
+- All endpoints are under `/api`
+- Liveness: `GET /api/health` · Database check: `GET /api/health/db`
 
 ## Common commands
 

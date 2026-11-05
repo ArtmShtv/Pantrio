@@ -6,6 +6,7 @@ from app.core.exceptions import (
     DomainValidationError,
     NotFoundError,
     PermissionDeniedError,
+    PlanAlreadyExistsError,
 )
 
 _STATUS = {
@@ -23,3 +24,10 @@ def register_exception_handlers(app: FastAPI) -> None:
             return JSONResponse({"detail": str(exc)}, status_code=code)
 
         app.add_exception_handler(exc_class, handler)
+
+    async def plan_exists_handler(_: Request, exc: PlanAlreadyExistsError) -> JSONResponse:
+        return JSONResponse(
+            {"detail": str(exc), "plan_id": exc.plan_id}, status_code=status.HTTP_409_CONFLICT
+        )
+
+    app.add_exception_handler(PlanAlreadyExistsError, plan_exists_handler)

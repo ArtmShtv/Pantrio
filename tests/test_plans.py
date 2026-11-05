@@ -78,6 +78,7 @@ async def test_duplicate_week_is_409_with_id(client, make_user):
     plan = await make_plan(client, alice)
     r = await client.post("/plans", json={"start_date": MONDAY}, headers=alice)
     assert r.status_code == 409 and str(plan["id"]) in r.json()["detail"]
+    assert r.json()["plan_id"] == plan["id"]
     await make_plan(client, bob)  # another user, same week: fine
 
 

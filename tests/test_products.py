@@ -213,3 +213,66 @@ async def test_sorted_by_price_per_gram(client, make_user):
 async def admin_and_global(client, make_user):
     admin = await make_user(admin=True)
     return admin, await make_ingredient(client, admin, scope="global")
+
+
+async def test_get_product_includes_ingredient(client, make_user):
+    alice = await make_user()
+    ing = await make_ingredient(client, alice)
+    p = await make_product(client, alice, ing["id"])
+    r = await client.get(f"/products/{p['id']}", headers=alice)
+    assert r.status_code == 200
+    assert r.json() == p | {"ingredient": {"id": ing["id"], "name": ing["name"]}}
+
+
+async def test_get_other_users_product_is_404(client, make_user):
+    alice, bob = await make_user(), await make_user()
+    ing = await make_ingredient(client, alice)
+    p = await make_product(client, alice, ing["id"])
+    assert (await client.get(f"/products/{p['id']}", headers=bob)).status_code == 404
+
+
+async def test_list_products_sorted_by_ingredient_then_price(client, make_user):
+    alice, bob = await make_user(), await make_user()
+    tag = secrets.token_hex(3)
+    apples = await make_ingredient(client, alice, name=f"Apple {tag}", grams_per_piece=150)
+    zucchini = await make_ingredient(client, alice, name=f"Zucchini {tag}", grams_per_piece=300)
+    z = await make_product(client, alice, zucchini["id"], pack_size=1, pack_unit="piece", price=50)
+    a_dear = await make_product(client, alice, apples["id"], pack_size=1, pack_unit="g", price=1)
+    a_cheap = await make_product(
+        client, alice, apples["id"], pack_size=1000, pack_unit="g", price=100
+    )
+    bob_ing = await make_ingredient(client, bob, name=f"Apple {tag}")
+    await make_product(client, bob, bob_ing["id"], pack_size=1000, pack_unit="g", price=1)
+
+    r = await client.get("/products", params={"scope": "mine"}, headers=alice)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == 3
+    assert [i["id"] for i in body["items"]] == [a_cheap["id"], a_dear["id"], z["id"]]
+    assert body["items"][0]["ingredient"] == {"id": apples["id"], "name": apples["name"]}
+
+
+async def test_list_products_filters(client, make_user):
+    alice = await make_user()
+    ing = await make_ingredient(client, alice)
+    other = await make_ingredient(client, alice)
+    kept = await make_product(client, alice, ing["id"], name="Kefir 1%", shop_name="Magnit")
+    await make_product(client, alice, ing["id"], name="Kefir 2.5%", shop_name="Lenta")
+    await make_product(client, alice, other["id"], name="Kefir 1%", shop_name="Magnit")
+
+    params = {"q": "kefir 1", "ingredient_id": ing["id"], "shop_name": " MAGNIT ", "scope": "mine"}
+    r = await client.get("/products", params=params, headers=alice)
+    assert r.status_code == 200
+    assert [i["id"] for i in r.json()["items"]] == [kept["id"]]
+    assert r.json()["total"] == 1
+
+
+async def test_list_products_paginates(client, make_user):
+    alice = await make_user()
+    ing = await make_ingredient(client, alice)
+    for _ in range(3):
+        await make_product(client, alice, ing["id"])
+    r = await client.get(
+        "/products", params={"scope": "mine", "limit": 2, "offset": 2}, headers=alice
+    )
+    assert r.json()["total"] == 3 and len(r.json()["items"]) == 1
