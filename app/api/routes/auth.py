@@ -1,16 +1,3 @@
-"""Auth endpoints.
-
-Token flow:
-- /register, /login and /token start a session: the access token is
-  returned in the JSON body, the refresh token is set as an httpOnly cookie.
-- The OAuth callback only sets the cookie and redirects to the frontend,
-  which then calls /refresh to get its first access token.
-- The client keeps the access token in memory and sends it as
-  `Authorization: Bearer ...`. When it expires (401), the client calls
-  /refresh; the browser attaches the cookie automatically.
-- /logout revokes the session and clears the cookie.
-"""
-
 from enum import StrEnum
 from typing import Annotated
 from urllib.parse import urlencode
@@ -43,6 +30,7 @@ from app.services.sessions import (
     start_session,
 )
 from app.services.tokens import issue_tokens, token_response
+from app.core.request_limiter import RequestLimiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -82,10 +70,20 @@ async def register(
     return await _start_session(session, response, user.id)
 
 
+login_limiter = RequestLimiter(capacity=5, per_seconds=60)
 @router.post("/login", response_model=TokenResponse, summary="Log in with JSON", responses=_401)
 async def login_json(
-    data: UserLoginSchema, session: SessionDep, response: Response
+    data: UserLoginSchema,
+    session: SessionDep,
+    response: Response,
 ) -> TokenResponse:
+    if not login_limiter.allow(data.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts, try again later",
+            headers={"Retry-After": "12"},
+        )
+
     user = await authenticate_user(session, data.email, data.password)
     if user is None:
         raise _invalid_credentials()
@@ -103,6 +101,13 @@ async def login_form(
     session: SessionDep,
     response: Response,
 ) -> TokenResponse:
+    if not login_limiter.allow(form.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts, try again later",
+            headers={"Retry-After": "12"},
+        )
+    
     user = await authenticate_user(session, form.username, form.password)
     if user is None:
         raise _invalid_credentials()
