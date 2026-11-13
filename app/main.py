@@ -8,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.api.errors import register_exception_handlers
 from app.api.router import api_router
 from app.core.config import API_PREFIX, get_settings
+from app.core.middlewares import SecurityHeadersMiddleware
 from app.db.config import engine
 
 
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
         https_only=settings.ENVIRONMENT == "production",
         same_site="lax",
     )
+    app.add_middleware(SecurityHeadersMiddleware)
 
     if settings.CORS_ORIGINS:
         app.add_middleware(

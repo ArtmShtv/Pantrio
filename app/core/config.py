@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     VK_CLIENT_ID: str | None = None
     VK_CLIENT_SECRET: SecretStr | None = None
 
-    FRONTEND_URL: str = "http://localhost:5173"
+    FRONTEND_URL: str
     CORS_ORIGINS: Annotated[list[str], NoDecode] = []
 
     @field_validator("FRONTEND_URL")

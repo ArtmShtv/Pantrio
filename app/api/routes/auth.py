@@ -53,6 +53,7 @@ async def _start_session(session: SessionDep, response: Response, user_id: int) 
     return body
 
 
+register_limiter = RequestLimiter(capacity=5, per_seconds=60)
 @router.post(
     "/register",
     response_model=TokenResponse,
@@ -61,8 +62,17 @@ async def _start_session(session: SessionDep, response: Response, user_id: int) 
     responses={status.HTTP_409_CONFLICT: {"description": "Email or username already exists"}},
 )
 async def register(
-    user_data: UserCreateSchema, session: SessionDep, response: Response
+    user_data: UserCreateSchema, 
+    session: SessionDep, 
+    response: Response
 ) -> TokenResponse:
+    if not register_limiter.allow(user_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts, try again later",
+            headers={"Retry-After": "12"},
+        )
+    
     try:
         user = await register_user(session, user_data)
     except UserAlreadyExistsError as e:
@@ -114,13 +124,25 @@ async def login_form(
     return await _start_session(session, response, user.id)
 
 
+refresh_limiter = RequestLimiter(capacity=5, per_seconds=60)
 @router.post(
     "/refresh",
     response_model=TokenResponse,
     summary="Get a new access token using the refresh cookie",
     responses={status.HTTP_401_UNAUTHORIZED: {"description": "Invalid refresh token"}},
 )
-async def refresh(session: SessionDep, response: Response, refresh_token: RefreshCookie = None):
+async def refresh(
+    session: SessionDep, 
+    response: Response, 
+    refresh_token: RefreshCookie = None
+):
+    if not refresh_limiter.allow():
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many login attempts, try again later",
+            headers={"Retry-After": "12"},
+        )
+
     try:
         if not refresh_token:
             raise InvalidRefreshToken
